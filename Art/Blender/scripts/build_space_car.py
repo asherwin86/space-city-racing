@@ -2,7 +2,7 @@
 Space City Racing - procedural "space car" generator for Blender 5.x.
 
 Builds a futuristic racer, rigs it for Unreal's Chaos Vehicle system
-(Root bone + 4 wheel bones), renders preview images, saves an editable
+(Root bone + 4 Phys_Wheel_* bones), renders preview images, saves an editable
 .blend and exports an FBX ready to import into Unreal.
 
 Run from a terminal:
@@ -39,11 +39,13 @@ WHEEL_R = 34      # wheel radius
 WHEEL_W = 30      # tyre width
 WHEEL_X = 150     # front/rear axle distance from centre
 WHEEL_Y = 103     # wheel centre distance from centreline
+# Bone names match the Unreal Vehicle template's SK_SportsCar skeleton, so the
+# car can reuse its wheel animation Blueprint (B = back wheels).
 WHEELS = {        # bone name -> (x, y); +Y is the car's left side
-    "Wheel_FL": (WHEEL_X, WHEEL_Y),
-    "Wheel_FR": (WHEEL_X, -WHEEL_Y),
-    "Wheel_RL": (-WHEEL_X, WHEEL_Y),
-    "Wheel_RR": (-WHEEL_X, -WHEEL_Y),
+    "Phys_Wheel_FL": (WHEEL_X, WHEEL_Y),
+    "Phys_Wheel_FR": (WHEEL_X, -WHEEL_Y),
+    "Phys_Wheel_BL": (-WHEEL_X, WHEEL_Y),
+    "Phys_Wheel_BR": (-WHEEL_X, -WHEEL_Y),
 }
 
 # Body cross-sections from tail to nose: (x, half-width, bottom z, top z)
