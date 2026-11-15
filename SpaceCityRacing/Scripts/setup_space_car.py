@@ -30,8 +30,8 @@ TEMPLATE_WHEEL_F = "/Game/VehicleTemplate/Blueprints/SportsCar/SportsCar_WheelsF
 TEMPLATE_WHEEL_B = "/Game/VehicleTemplate/Blueprints/SportsCar/SportsCar_WheelsRear"
 GAME_MODE = "/Game/VehicleTemplate/Blueprints/BP_VehicleAdvGameMode"
 
-WHEEL_RADIUS = 34.0
-WHEEL_WIDTH = 30.0
+# Wheel physics (cm), matching the tyres modelled in Blender: key -> (radius, width)
+WHEEL_SIZE = {"front": (39.0, 35.0), "rear": (40.0, 40.0)}
 
 # The template's body/wheel meshes that BP_SpaceCar no longer needs
 TEMPLATE_STATIC_PARTS = {"Chasis_Main", "Chasis_Glass", "FL_Wheel_0", "FR_Wheel_0", "BL_Wheel_0", "BR_Wheel_0"}
@@ -142,17 +142,15 @@ def build_materials():
 
 
 # ---------------------------------------------------------------- 2. mesh
-def import_mesh(materials):
+def import_skeletal(fbx, name):
+    """Import an FBX as a skeletal mesh on the template skeleton (no physics asset)."""
     unreal.SystemLibrary.execute_console_command(None, "Interchange.FeatureFlags.Import.FBX False")
     skeleton = must(EAL.load_asset(TEMPLATE_SKELETON), "template skeleton")
-    pa = copy_asset(TEMPLATE_PA, f"{BASE}/Meshes/PA_SpaceCar")
-
     ui = unreal.FbxImportUI()
     ui.set_editor_property("import_mesh", True)
     ui.set_editor_property("import_as_skeletal", True)
     ui.set_editor_property("mesh_type_to_import", unreal.FBXImportType.FBXIT_SKELETAL_MESH)
     ui.set_editor_property("skeleton", skeleton)
-    ui.set_editor_property("physics_asset", pa)
     ui.set_editor_property("create_physics_asset", False)
     ui.set_editor_property("import_materials", False)
     ui.set_editor_property("import_textures", False)
@@ -160,17 +158,20 @@ def import_mesh(materials):
     ui.skeletal_mesh_import_data.set_editor_property("import_morph_targets", False)
 
     task = unreal.AssetImportTask()
-    task.set_editor_property("filename", FBX)
+    task.set_editor_property("filename", fbx)
     task.set_editor_property("destination_path", f"{BASE}/Meshes")
-    task.set_editor_property("destination_name", "SK_SpaceCar")
+    task.set_editor_property("destination_name", name)
     task.set_editor_property("automated", True)
     task.set_editor_property("replace_existing", True)
     task.set_editor_property("save", True)
     task.set_editor_property("options", ui)
     AT.import_asset_tasks([task])
-    log("import result:", list(task.get_editor_property("imported_object_paths")))
+    log(f"import {name}:", list(task.get_editor_property("imported_object_paths")))
+    return must(EAL.load_asset(f"{BASE}/Meshes/{name}"), f"imported {name}")
 
-    mesh = must(EAL.load_asset(f"{BASE}/Meshes/SK_SpaceCar"), "imported SK_SpaceCar")
+
+def import_mesh(materials):
+    mesh = import_skeletal(FBX, "SK_SpaceCar")
     log("mesh skeleton:", mesh.get_editor_property("skeleton").get_path_name())
 
     slots = mesh.get_editor_property("materials")
@@ -182,10 +183,25 @@ def import_mesh(materials):
             s.set_editor_property("material_interface", mat)
         log(f"  slot {slot}: {'-> ' + mat.get_name() if mat else 'NO MATCH'}")
     mesh.set_editor_property("materials", slots)
+    EAL.save_loaded_asset(mesh, only_if_is_dirty=False)
+    return mesh
+
+
+# ---------------------------------------------------------------- 2b. physics
+def build_physics(mesh):
+    """Use a copy of the template sports car's physics asset. The car's wheel bones sit
+    exactly where the sports car's do, so its body hull and wheel joints line up."""
+    # Remove leftovers from an earlier experiment (generated capsule physics + proxy mesh)
+    mesh.set_editor_property("physics_asset", None)
+    for old in (f"{BASE}/Meshes/SK_SpaceCar_PhysicsProxy_PhysicsAsset", f"{BASE}/Meshes/SK_SpaceCar_PhysicsProxy"):
+        if EAL.does_asset_exist(old):
+            log("  removing leftover:", old, EAL.delete_asset(old))
+    pa = copy_asset(TEMPLATE_PA, f"{BASE}/Meshes/PA_SpaceCar")
     mesh.set_editor_property("physics_asset", pa)
     EAL.save_loaded_asset(pa, only_if_is_dirty=False)
     EAL.save_loaded_asset(mesh, only_if_is_dirty=False)
-    return mesh
+    log("physics asset:", pa.get_path_name())
+    return pa
 
 
 # ---------------------------------------------------------------- 3. wheels
@@ -194,8 +210,8 @@ def build_wheels():
     for key, src in (("front", TEMPLATE_WHEEL_F), ("rear", TEMPLATE_WHEEL_B)):
         bp = copy_asset(src, f"{BASE}/Blueprints/SpaceCar_Wheels{key.title()}")
         cdo = cdo_of(bp)
-        cdo.set_editor_property("wheel_radius", WHEEL_RADIUS)
-        cdo.set_editor_property("wheel_width", WHEEL_WIDTH)
+        cdo.set_editor_property("wheel_radius", WHEEL_SIZE[key][0])
+        cdo.set_editor_property("wheel_width", WHEEL_SIZE[key][1])
         EAL.save_loaded_asset(bp, only_if_is_dirty=False)
         out[key] = BEL.generated_class(bp)
         log(f"wheels {key}: radius {cdo.get_editor_property('wheel_radius')} width {cdo.get_editor_property('wheel_width')}")
@@ -284,6 +300,7 @@ def main():
     log("FBX:", FBX)
     materials = build_materials()
     mesh = import_mesh(materials)
+    build_physics(mesh)
     wheels = build_wheels()
     bp = build_blueprint(mesh, wheels)
     set_default_pawn(bp)

@@ -35,41 +35,40 @@ def v(x, y, z):
 
 
 # ---------------------------------------------------------------- design
-WHEEL_R = 34      # wheel radius
-WHEEL_W = 30      # tyre width
-WHEEL_X = 150     # front/rear axle distance from centre
-WHEEL_Y = 103     # wheel centre distance from centreline
-# Bone names match the Unreal Vehicle template's SK_SportsCar skeleton, so the
-# car can reuse its wheel animation Blueprint (B = back wheels).
-WHEELS = {        # bone name -> (x, y); +Y is the car's left side
-    "Phys_Wheel_FL": (WHEEL_X, WHEEL_Y),
-    "Phys_Wheel_FR": (WHEEL_X, -WHEEL_Y),
-    "Phys_Wheel_BL": (-WHEEL_X, WHEEL_Y),
-    "Phys_Wheel_BR": (-WHEEL_X, -WHEEL_Y),
+# The wheel layout matches the Unreal Vehicle template's sports car exactly
+# (SK_SportsCar skeleton + PA_SportsCar physics), so the car reuses its proven
+# wheel animation and physics. The Root bone sits ~14 cm above the ground at rest.
+# bone name -> (x, y, z, radius, tyre width); +Y is the car's left; B = back wheels
+WHEELS = {
+    "Phys_Wheel_FL": (135.0, 90.0, 25.0, 39.0, 35.0),
+    "Phys_Wheel_FR": (135.0, -90.0, 25.0, 39.0, 35.0),
+    "Phys_Wheel_BL": (-129.2, 90.0, 26.5, 40.0, 40.0),
+    "Phys_Wheel_BR": (-129.2, -90.0, 26.5, 40.0, 40.0),
 }
 
-# Body cross-sections from tail to nose: (x, half-width, bottom z, top z)
+# Body cross-sections from tail to nose: (x, half-width, bottom z, top z).
+# Kept inside the template's collision hull (bottom at z=2, half-width ~114).
 BODY = [
-    (-225, 64, 32, 80),
-    (-200, 74, 28, 86),
-    (-140, 78, 24, 88),
-    (-60, 76, 22, 90),
-    (20, 72, 22, 86),
-    (100, 60, 24, 72),
-    (170, 46, 26, 56),
-    (215, 32, 28, 45),
-    (238, 14, 32, 38),
+    (-225, 58, 12, 60),
+    (-200, 64, 8, 66),
+    (-140, 66, 4, 68),
+    (-60, 66, 2, 70),
+    (20, 64, 2, 66),
+    (100, 54, 4, 54),
+    (170, 42, 6, 38),
+    (215, 30, 8, 26),
+    (238, 14, 12, 20),
 ]
 
 # Cockpit canopy cross-sections (sits on top of the body)
 CANOPY = [
-    (-120, 8, 78, 84),
-    (-95, 30, 76, 102),
-    (-50, 40, 76, 115),
-    (-5, 40, 76, 117),
-    (35, 32, 76, 106),
-    (70, 14, 76, 88),
-    (85, 4, 76, 80),
+    (-120, 8, 58, 64),
+    (-95, 30, 56, 82),
+    (-50, 40, 56, 95),
+    (-5, 40, 56, 97),
+    (35, 32, 56, 86),
+    (70, 14, 56, 64),
+    (85, 4, 54, 58),
 ]
 
 
@@ -261,42 +260,42 @@ def build_car(M):
     # Rear thrusters with hot-pink cores
     bm = bmesh.new()
     for side in (1, -1):
-        cylinder(bm, 16, 40, v(-235, 40 * side, 57), "X", 32, mat_index=0)
-        cylinder(bm, 18, 6, v(-253, 40 * side, 57), "X", 32, radius2=16, mat_index=0)
-        cylinder(bm, 12, 2, v(-256.5, 40 * side, 57), "X", 32, mat_index=1)
+        cylinder(bm, 16, 40, v(-235, 40 * side, 37), "X", 32, mat_index=0)
+        cylinder(bm, 18, 6, v(-253, 40 * side, 37), "X", 32, radius2=16, mat_index=0)
+        cylinder(bm, 12, 2, v(-256.5, 40 * side, 37), "X", 32, mat_index=1)
     parts.append((make_object("Thrusters", bm, [M["trim"], M["thruster"]]), "Root"))
 
     # Rear wing on two pylons, with end plates and a glowing trailing edge
     bm = bmesh.new()
-    box(bm, v(-210, 0, 131), (40, 220, 6), 0, bevel_cm=1.5)
-    box(bm, v(-231, 0, 131), (2, 200, 3), 1)
+    box(bm, v(-210, 0, 111), (40, 220, 6), 0, bevel_cm=1.5)
+    box(bm, v(-231, 0, 111), (2, 200, 3), 1)
     for side in (1, -1):
-        box(bm, v(-205, 45 * side, 105), (12, 5, 46), 0, bevel_cm=1.0)
-        box(bm, v(-208, 111 * side, 127.5), (50, 3, 35), 0, bevel_cm=1.0)
+        box(bm, v(-205, 45 * side, 86), (12, 5, 46), 0, bevel_cm=1.0)
+        box(bm, v(-208, 111 * side, 107.5), (50, 3, 35), 0, bevel_cm=1.0)
     parts.append((make_object("Wing", bm, [M["trim"], M["glow"]]), "Root"))
 
     # Front splitter and headlight strips
     bm = bmesh.new()
-    box(bm, v(205, 0, 24), (70, 150, 3), 0, bevel_cm=1.0)
+    box(bm, v(205, 0, 4), (70, 150, 3), 0, bevel_cm=1.0)
     for side in (1, -1):
-        box(bm, v(212, 26 * side, 44), (20, 14, 3), 1)
+        box(bm, v(212, 22 * side, 24), (20, 12, 3), 1)
     parts.append((make_object("Nose", bm, [M["trim"], M["headlight"]]), "Root"))
 
     # Wheel fenders (fixed to the body) with struts back to the fuselage
     bm = bmesh.new()
-    for x, y in WHEELS.values():
+    for x, y, z, r, w in WHEELS.values():
         side = 1 if y > 0 else -1
-        arc_shell(bm, x, y, WHEEL_R, 39, 44, 38, 10, 170, 24, 0)
+        arc_shell(bm, x, y, z, r + 5, r + 10, w + 8, 10, 170, 24, 0)
         inner = half_width_at(BODY, x) - 6
-        outer = abs(y) - 15
-        box(bm, v(x, side * (inner + outer) / 2, WHEEL_R + 36), (14, outer - inner, 6), 0, bevel_cm=1.0)
+        outer = abs(y) - w / 2 - 2
+        box(bm, v(x, side * (inner + outer) / 2, z + r + 7.5), (14, outer - inner, 5), 0, bevel_cm=1.0)
     parts.append((make_object("Fenders", bm, [M["trim"]]), "Root"))
 
     # Wheels: tyre + glowing ring + metal rim, one object per wheel bone
-    for bone, (x, y) in WHEELS.items():
+    for bone, (x, y, z, r, w) in WHEELS.items():
         bm = bmesh.new()
-        c = v(x, y, WHEEL_R)
-        tyre = cylinder(bm, WHEEL_R, WHEEL_W, c, "Y", 40, mat_index=0)
+        c = v(x, y, z)
+        tyre = cylinder(bm, r, w, c, "Y", 40, mat_index=0)
         edges = [e for e in {e for vt in tyre for e in vt.link_edges}
                  if len(e.link_faces) == 2 and e.calc_face_angle(0) > math.radians(60)]
         try:
@@ -304,9 +303,9 @@ def build_car(M):
                             profile=0.5, affect="EDGES", clamp_overlap=True)
         except Exception as exc:
             print("tyre bevel skipped:", exc)
-        cylinder(bm, 25, WHEEL_W + 2, c, "Y", 40, mat_index=1)
-        cylinder(bm, 21, WHEEL_W + 3.5, c, "Y", 40, mat_index=2)
-        cylinder(bm, 7, WHEEL_W + 5, c, "Y", 20, mat_index=0)
+        cylinder(bm, r - 9, w + 2, c, "Y", 40, mat_index=1)
+        cylinder(bm, r - 13, w + 3.5, c, "Y", 40, mat_index=2)
+        cylinder(bm, 7, w + 5, c, "Y", 20, mat_index=0)
         parts.append((make_object(bone, bm, [M["tyre"], M["glow"], M["rim"]]), bone))
 
     return parts
@@ -339,11 +338,16 @@ def join_and_rig(parts):
     arm.select_set(True)
     with bpy.context.temp_override(active_object=arm, object=arm):
         bpy.ops.object.mode_set(mode="EDIT")
+        # Bone orientations must match the template skeleton's reference pose, or the
+        # wheel animation re-orients the car. Root: no rotation in Unreal (points +Y,
+        # Z up). Wheels: Unreal rotation (pitch 0, yaw -90, roll 90) = points up, Z along +X.
         root = arm_data.edit_bones.new("Root")
-        root.head, root.tail = v(0, 0, 0), v(0, 0, 50)
-        for bone, (x, y) in WHEELS.items():
+        root.head, root.tail = v(0, 0, 0), v(0, 50, 0)
+        root.align_roll(Vector((0, 0, 1)))
+        for bone, (x, y, z, _r, _w) in WHEELS.items():
             b = arm_data.edit_bones.new(bone)
-            b.head, b.tail = v(x, y, WHEEL_R), v(x, y, WHEEL_R + 30)
+            b.head, b.tail = v(x, y, z), v(x, y, z + 30)
+            b.align_roll(Vector((1, 0, 0)))
             b.parent = root
         bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -425,6 +429,7 @@ def setup_preview_scene():
     bm.to_mesh(me); bm.free()
     me.materials.append(ground_material())
     ground = bpy.data.objects.new("Ground", me)
+    ground.location.z = min(z - r for _x, _y, z, r, _w in WHEELS.values()) * CM  # where the tyres touch
     scene.collection.objects.link(ground)
 
     target = bpy.data.objects.new("CameraTarget", None)
