@@ -1,0 +1,38 @@
+# ---- Unreal Engine (project lives in SpaceCityRacing/) ----
+# Generated/cached folders - Unreal rebuilds these automatically
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+.idea/
+.vscode/
+
+# Generated IDE/solution files
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+
+# Compiled outputs
+*.pdb
+*.dll
+*.exe
+*.lib
+
+# Packaged game builds
+Packaged/
+Releases/
+
+# ---- Blender ----
+# Autosave/backup files (.blend1, .blend2, ...)
+*.blend[0-9]
+*.blend[0-9][0-9]
+
+# ---- OS clutter ----
+Thumbs.db
+Desktop.ini
+.DS_Store
